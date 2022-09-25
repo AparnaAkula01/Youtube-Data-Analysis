@@ -1,0 +1,329 @@
+---
+title: "Stats Final Project"
+author: "Aparna Devi Akula"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+Doing analysis on YouTube data seems very interesting to me, so I decide to consider YouTube data.
+This dataset is a daily record of the top trending YouTube videos.
+This dataset includes several months of data on daily trending YouTube videos. Data is included 
+for the USA, Great Britain, Germany, Canada, and France with up to 200 listed trending videos per day.
+But for my analysis I considered only USA dataset. This data is in a separate file. 
+Data includes the video title, channel title, publish time, tags, views, likes and dislikes, 
+description, and comment count. So with the data I am doing visualizations that tells us how views,
+likes,dislikes,comment_count,trending date and some other variables are related to each other.
+I also developed two models to find out which model is efficient for this particular dataset and 
+what is the accuracy of the predicted models.** 
+
+### Declaring the required packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(tinytex)
+```
+### Importing data
+```{r}
+youtube = read_csv("C:/Users/Akula/Downloads/USvideos.csv")
+glimpse(youtube)
+```
+The dataset obtained is clear and there is no need to clean the data, so considering the original dataset itself.
+
+
+
+### Rearranging data as per convenience
+```{r}
+youtube <- youtube %>% mutate(views_per_million = views/1000000)
+youtube <- youtube %>% mutate(likes_per_million = likes/1000000)
+youtube <- youtube %>% mutate(dislikes_per_million = dislikes/1000000)
+```
+Converting view,likes and dislikes to views_per_million,likes_per_million and dislikes_per_million 
+respectively as per convenience.
+
+
+
+### How many channels have the videos greater 50 million views?
+```{r}
+youtube %>% filter(views_per_million>50) %>%
+  ggplot(aes(x=channel_title,y=views_per_million)) + geom_point(aes(x=channel_title,y=views_per_million)) +     geom_line(aes(group=1))+ theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+```
+
+20 channels have the videos which have more than 50 million views. Two channels each have two videos 
+that have more than 50 million views.
+
+
+
+### Which video has the highest and lowest likes?
+```{r}
+youtube %>% filter(likes==0 | likes==5613827 )
+```
+"BTS (ë°©íƒ„ì†Œë…„ë‹¨) 'FAKE LOVE' Official MV" has the highest likes with 5.61 million and 
+there are 30 videos have zero likes.
+
+
+
+### Which video has the highest and lowest dislikes?
+```{r}
+youtube %>% filter(dislikes==0 | dislikes==1674420 )
+```
+"So Sorry" video has highest number of dislikes with 1.6 million, and there are 100 videos which have zero dislikes
+
+### The videos which have zero likes and zero dislikes.
+```{r}
+youtube %>% filter(likes==0 & dislikes==0) %>% select(title)
+```
+There are 29 videos which have no likes and no dislikes.
+
+
+### To the videos which have more than 50 million views,how are their corresponding views and likes?
+```{r fig.height=7}
+youtube_above50 <- youtube %>% filter(views_per_million>50)
+youtube_above50 %>% ggplot() + 
+      geom_point(aes(x=title,y=views_per_million,color = "views_per_million")) + 
+      geom_point(aes(x=title,y=likes_per_million,color = "likes_per_million")) +
+      theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+```
+
+The video "Childish Gambino - This Is America (Official Video)" has 225 million views but it has 5 million likes only,
+where as "BTS (방탄소년단) 'FAKE LOVE' Official MV" video has 5.6 million likes which is highest likes but the views 
+are 123 million.
+
+
+```{r}
+youtube_above50 <- youtube %>% filter(views_per_million>50)
+```
+Filtering and creating a list with the views greater for 50 million
+
+
+
+### How many videos have disabled commenting?
+```{r}
+youtube_comments <- as_tibble(c("Comments Enabled","Comments Disabled"))
+youtube_comments <- youtube_comments %>% add_column(n = c(6329,111))
+ggplot(youtube_comments, aes(x="", y = n,fill=value)) +
+  geom_bar(stat="identity", width=1) +coord_fixed() +
+  coord_polar("y",start = 0)
+```
+
+Nearly 111 videos have disabled the comments out of 6440 videos
+
+
+
+### How many videos have disabled ratings?
+```{r}
+youtube_ratings <- as_tibble(c("Ratings Enabled","Ratings Disabled"))
+youtube_ratings <- youtube_ratings %>% add_column(n = c(6410,28))
+ggplot(youtube_ratings, aes(x="", y = n,fill=value)) +
+  geom_bar(stat="identity", width=1) +coord_fixed() +
+  coord_polar("y",start = 0)
+```
+
+About 28 videos ratings have been disabled and for 6410 videos ratings are enabled
+
+
+
+### Comparing likes and dislikes for the videos which have more than 50 million views.
+```{r fig.height=6}
+p1 <- youtube_above50 %>% ggplot(aes(x=title,y=likes_per_million)) +    
+  geom_point(aes(x=title,y=likes_per_million))+
+  geom_line(aes(group=1),color = "red")+  
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) 
+
+p2 <- youtube_above50 %>% ggplot(aes(x=title,y=dislikes_per_million))+
+  geom_point(aes(x=title,y=dislikes_per_million)) +
+  geom_line(aes(group=1),color = "blue") +  
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+
+plot(p1)
+plot(p2)
+```
+
+"BTS (방탄소년단) 'FAKE LOVE' Official MV" video has highest likes which is 5.6 million and 0.2 million dislikes.
+"YouTube Rewind:The Shape of 2017|#YouTubeRewind" has highest dislikes as 1.6 million.
+We can say that with the increase of likes there is simultaneous increase in dislikes
+
+
+
+### Which video got most trended? (videos that has greater than 50 million views)
+```{r}
+youtube_above50 %>%  ggplot(aes(x=trending_date,y=title))+
+  geom_point(aes(x=trending_date,y=title)) +
+  geom_line(aes(group=1)) + theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+```
+
+"YouTube Rewind:The Shape of 2017|#YouTubeRewind" is the video that got most trended, in the 
+videos that has greater than 50 million views.
+Based on the above two visualizations we can say that the video which is most trending is the 
+video which got the highest number of dislike.(videos that has greater than 50 million views.)
+
+
+
+Converting publish date and trending date to time format
+```{r}
+youtube <- youtube %>% add_column(trendingdate = as.Date(youtube$trending_date,format="%y.%d.%m"))
+youtube <- youtube %>% add_column(publish_date = as.Date(youtube$publish_time,format="%y-%d-%m"))
+```
+
+Finding trend difference
+```{r}
+youtube_above50 <- youtube %>% filter(views_per_million>50)
+youtube_above50 <- youtube_above50 %>% mutate(trending_diff = trendingdate - publish_date)
+```
+
+### How many days after the publish date did the videos start trending?(for videos that has greater than 50 million views)
+```{r}
+youtube_above50 %>% ggplot(aes(x=trending_diff,y=title))+
+  geom_bar(stat="identity", width=0.5) + theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+```
+
+"YouTube Rewind: The Shape of 2017 | #YouTubeRewind by YouTube Spotlight", "Bruno Mars - Finesse (Remix) 
+[Feat. Cardi B] [Official Video] by Bruno Mars" and "42 HOLY GRAIL HACKS THAT WILL SAVE YOU A FORTUNE 
+by 5-Minute Crafts" -- these 3 videos took less time to get trending, after 8 days from the publish date 
+these videos started to trend. 
+
+
+
+### How trending date and publish date effect likes_per_million? (for videos that has greater than 50 million views)
+```{r fig.height=7}
+ggplot(youtube_above50) + geom_bar(aes(y=trending_diff,x=title),stat="identity", width=0.5) + 
+  geom_point(aes(y=likes_per_million, x=title),stat="identity",color="red") + 
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
+  scale_y_continuous(sec.axis=sec_axis(~.*0.01,name="Likes_per_million"))
+```
+
+Trending_diff doesn't really effect anything on the likes, its just the increase in the number of views per video.
+
+
+
+### Linear Model
+```{r}
+model <- lm(views~likes+dislikes+comment_count, data=youtube)
+summary(model)
+coefficients(model)
+ggplot(data = youtube,aes(x=views,y=comment_count))+geom_point()+geom_smooth(method = 'lm')
+```
+
+It can be clearly seen from the linear model that views are co-related with likes,dislike and comment count.
+and with the increase in the number of views there will an increase in the comment count
+
+
+
+### Providing some more insights based on the linear model.
+```{r BTS fans only commenting}
+youtube_above50 <- youtube_above50 %>% mutate(commentcount_views = comment_count/views)
+```
+
+
+### Comparing Commentcount with respective to views
+```{r fig.height=6}
+youtube_above50 %>% ggplot(aes(x=title,y=commentcount_views))+geom_point()+geom_smooth() +  
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90))
+```
+
+I did a calculation commentcount_views which is comment_count/views, if the ratio is equal to 1,
+we can determine that the number of views to the video is equal to the number of comments that video have.
+From the plot we can see that BTS is in the ratio of 0.01, this means "BTS'FAKE LOVE' Official MV" 
+is the only video among the videos that have more than 50 million views, that has its 
+number of views nearer to the comment count.
+
+
+
+### Dividing the data into test data and train data
+```{r}
+train_data <- youtube[0:5000,]
+test_data <- youtube[5001:6440,]
+```
+
+
+### Anova Model
+```{r}
+model3 <- lm(views~dislikes,data=train_data)
+anova(model3)
+plot(model3)
+```
+
+This technique is used to answer the hypothesis while analyzing multiple groups of data. 
+This is done using views and dislikes. 
+
+
+
+### Developing a Linear Model based on the train data based on views,tredingdate,likes and dislike.
+```{r}
+model2 <- lm(views~trendingdate+likes+dislikes,data=train_data)
+summary(model2)
+coefficients(model2)
+ggplot(data = train_data,aes(x=views,y=likes))+geom_point()+geom_smooth(method = 'lm')
+```
+
+It can be clearly seen from the linear model that views are co-related with trending date,likes and dislikes.
+and with the increase in the number of views there will an increase in the number of likes.
+
+
+
+### Calculating predicted views based on the test data using the linear model that is developed for train data.
+```{r}
+predicted <- data.frame(predict = predict(model2, newdata = test_data))
+glimpse(predicted)
+```
+### Calculating error value based on the predicted data we derived.
+```{r}
+error <- data.frame(e_value = (predicted$predict - test_data$views)/predicted$predict * 100)
+mean(error$e_value)
+```
+
+We can see the error as 35% so there is only 65% accuracy in the predicated data, which is low.
+
+
+
+### Developing Generalized Linear Model using the train data
+```{r}
+glm_model <- glm(views~trendingdate+likes+dislikes,data=train_data)
+summary(glm_model)
+```
+
+It can be determined from the Generalized Linear Model that views are co-related with trending date,
+likes and dislikes.
+
+
+
+### How much accuracy  be derived using the Generalized Linear Model
+```{r}
+library(performance)
+performance_accuracy(glm_model)
+```
+
+We can see that the accuracy is 83.62% meaning there is only 16.38% of error.
+
+
+
+### Comparing the two models developed on views ~ trendingdate + likes + dislikes
+```{r}
+models <- c('Linear Model','Generalized Linear Model')
+accuracy_values <- c(65,81.51)
+ggplot()+ geom_bar(aes(x = models, y = accuracy_values, fill = accuracy_values),stat = 'identity')
+```
+
+From the bar chart above, it can be concluded that Generalized Linear Model is more efficient than 
+Linear Model for the opted data.
+
+
+
+### References:-
+https://www.kaggle.com/datasnaek/youtube-new/data?select=USvideos.csv
+https://stat412612.netlify.app/
+https://stackoverflow.com/questions/28320228/put-one-line-chart-and-bar-chart-in-one-plot-in-r-not-ggplot
+https://www.educba.com/anova-in-r/
+http://web.stanford.edu/class/stats306a/RforGLM.pdf
+https://www.educba.com/bar-charts-in-r/
+https://r4ds.had.co.nz/model-basics.html
+
+
